@@ -10,134 +10,138 @@ function bestCharge(selectedItems) {
   *   打印总价
   * */
 
-  
-  //1-获取菜品和数量
-  let CountItem = [];
-  function ItemCount(selectedItems) {
-    let Item = [];
-
-    selectedItems.forEach(item => {
-      Item.push(item.split("x"));
-    })
-
-    Item.forEach(item => {
-      item[0] = item[0].trim();
-      item[1] = item[1].trim();
-    })
-
-    Item.forEach(item => {
-      if (!CountItem.find(element => element.id === item[0])) {
-        CountItem.push({id: item[0], count: item[1], name: "", price: 0.00, subtotal: 0.00})
-      }
-    })
-    return selectItem(CountItem);
-  }
-
-  function selectItem(CountItem) {
-    let allItem = loadAllItems();
-
-    CountItem.forEach(item => {
-      allItem.forEach(i => {
-        if (item.id === i.id) {
-          item.name = i.name;
-          item.price = i.price;
-          item.subtotal = item.count * item.price;
-        }
-      })
-    })
-    return ItemCount(selectedItems);
-  }
-
-  // 2-分析菜品是否有优惠
-  // 2-1 计算菜品总价
-  let summation = sumItemCount(CountItem);
+  let num = 0;
+  let promotionsItem = [];
+  let promotionsPrice = 0;
+  let name = [];
+  let countItem = statisticalGoods(selectedItems)
   let promotions = loadPromotions();
+  let summation = summationFunction(countItem);
+  let difference = differenceFunction(summation, promotions);
 
-  function sumItemCount(CountItem) {
-    let sum = 0;
-    CountItem.forEach(i => {
-      sum += i.subtotal;
-    })
-    return summation;
-  }
-
-  //2-1 满30减6元
-  let selectpro = selectPromotions(summation, promotions);
-  let pro = [];
-
-  function selectPromotions(summation, promotions) {
-
-    if (summation >= 30) {
-      pro.push({s_price: parseInt(summation / 30) * 6, s_name: promotions[0].type});
-    } else {
-      pro.push({s_price: 0, s_name: 0});
-    }
-    return selectpro;
-  }
 
   //2-2 指定菜品半价
-  let halfItem = [];
-  let num = 0;
-  let halfpro = 0;
-  let halfname = [];
-  promotions[1].item().forEach(i => {
-    CountItem.forEach(item => {
-      if (i.id = item.id) {
+  promotions[1].items.forEach(item => {
+    countItem.forEach(data => {
+      if (item == data.id) {
         num++;
-        halfItem.push(item.count);
-        halfpro += item.price;
-        halfname.push(item.name);
+        promotionsItem.push(data.count)
+        promotionsPrice += data.price;
+        name.push(data.name)
       }
     })
   })
 
-  let halfsumprice = halfPrice(halfItem, num, halfpro, promotions, halfname);
-  let halfprice = [];
-
-  function halfPrice(halfItem, num, halfpro, promotions, halfname) {
-
-    if (num == 2) {
-      halfItem.sort((a, b) => a - b)
-      halfprice.push({
-        s_price: halfpro * promotions[0] / 2,
-        s_name: promotions[1].type + `(` + halfname[0] + `,` + halfname[1] + `)`
-      });
-    } else {
-      halfprice.push({s_price: 0, s_name: 0});
-    }
-    return halfsumprice;
-  }
-
   // 3-计算两种方式的价钱哪一种更优惠
-  let moreRight = (halfprice[0].s_price > pro[0].s_price ? halfPrice : halfsumprice);
+  let halfPrice = halfPriceFunction(promotionsItem, num, promotionsPrice, promotions, name);
+  let maximumDiscount = (difference[0].m_price > halfPrice[0].m_price ? difference : halfPrice);
+  let expectedResult = expected(countItem, maximumDiscount, summation);
 
-  // 3-1判断是否可以使用优惠方式
-  function usepro(moreRight) {
-    return moreRight[0].s_name != 0;
-  }
-
-  //4-打印菜品名和数量
-    let result = expected(CountItem, morRight, summation);
-    function expected(CountItem, morRight, summation) {
-    let expectString = `
-      ============= 订餐明细 =============\n`;
-    expectString += CountItem.forEach(item => {
-      item.id + ` x ` + item.count + ` = ` + item.subtotal + `元\n`
-    });
-    expectString +=`
-      -----------------------------------\n
-      ` + `使用优惠:\n`;
-
-    if (usepro(morRight)) {
-      expectString += moreRight[0].s_name + `，省` + moreRight[0].s_price + `元
-       -----------------------------------
-       总计：` + (summation - moreRight[0].s_price) + `元
-       ===================================`.trim();
-    } else {
-      expectString += `总计：` + (summation) + `元
-===================================`.trim();
-    }
-    return expectString;
-  }
-  return result;
+  return expectedResult
 }
+
+
+//1-获取菜品和数量
+function statisticalGoods(selectedItems,) {
+  let array_key = [];
+  let countItem = [];
+
+  selectedItems.forEach(item => {
+    array_key.push(item.split("x"))
+  })
+  array_key.forEach(data => {
+    data[0] = data[0].trim();
+    data[1] = data[1].trim();
+  })
+  array_key.forEach(data => {
+    if (!countItem.find(element => element.id === data[0])) {
+      countItem.push({id: data[0], count: data[1], name: '', price: 0.00, subtotal: 0.00})
+    }
+  })
+  return statisticalCommodityMachine(countItem);
+}
+
+function statisticalCommodityMachine(countItem) {
+  let allItems = loadAllItems();
+
+  countItem.forEach(item => {
+    allItems.forEach(data => {
+      if (item.id === data.id) {
+        item.name = data.name;
+        item.price = data.price;
+        item.subtotal = (item.price) * item.count;
+      }
+    })
+  })
+
+  return countItem
+}
+
+// 2-分析菜品是否有优惠
+// 2-1 计算菜品总价
+function summationFunction(countItem) {
+  let summation = 0;
+  countItem.forEach(data => {
+    summation += data.subtotal
+  })
+  return summation;
+}
+
+//2-1 满30减6元
+function differenceFunction(summation, promotions) {
+  let difference = [];
+  if (summation >= 30) {
+    difference.push({m_price: parseInt(summation / 30) * 6, m_name: promotions[0].type});
+  } else {
+    difference.push({m_price: 0, m_name: 0});
+
+  }
+  return difference
+}
+
+function halfPriceFunction(promotionsItem, num, promotionsPrice, promotions, name) {
+  let halfPrice = [];
+  if (num == 2) {
+    promotionsItem.sort((a, b) => a - b)
+    halfPrice.push({
+      m_price: promotionsPrice * promotionsItem[0] / 2,
+      m_name: promotions[1].type + `(` + name[0] + `，` + name[1] + `)`
+    });
+  } else {
+    halfPrice.push({
+      m_price: 0,
+      m_name: 0
+    });
+  }
+  return halfPrice;
+}
+
+// 3-1判断是否可以使用优惠方式
+function isShangFavorable(maximumDiscount) {
+  return maximumDiscount[0].m_name !== 0;
+}
+
+//4-打印菜品名和数量
+function expected(countItem, maximumDiscount, summation) {
+  let expectedString = "";
+
+  expectedString += `============= 订餐明细 =============\n`;
+  countItem.forEach(item => {
+    expectedString += item.name + ` x ` + item.count + ` = ` + item.subtotal + `元\n`
+  })
+  expectedString += `-----------------------------------\n`;
+
+  if (isShangFavorable(maximumDiscount)) {
+    expectedString += `使用优惠:
+` + maximumDiscount[0].m_name + `，省` + maximumDiscount[0].m_price + `元
+-----------------------------------
+总计：` + (summation - maximumDiscount[0].m_price) + `元
+===================================`.trim();
+  } else {
+    expectedString += `总计：` + (summation) + `元
+===================================`.trim();
+  }
+
+  return expectedString
+}
+
